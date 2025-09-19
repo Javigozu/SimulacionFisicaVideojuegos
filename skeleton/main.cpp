@@ -18,18 +18,19 @@ using namespace physx;
 PxDefaultAllocator		gAllocator;
 PxDefaultErrorCallback	gErrorCallback;
 
-PxFoundation*			gFoundation = NULL;
-PxPhysics*				gPhysics	= NULL;
+PxFoundation* gFoundation = NULL;
+PxPhysics* gPhysics = NULL;
 
 
-PxMaterial*				gMaterial	= NULL;
+PxMaterial* gMaterial = NULL;
 
-PxPvd*                  gPvd        = NULL;
+PxPvd* gPvd = NULL;
 
-PxDefaultCpuDispatcher*	gDispatcher = NULL;
-PxScene*				gScene      = NULL;
+PxDefaultCpuDispatcher* gDispatcher = NULL;
+PxScene* gScene = NULL;
 ContactReportCallback gContactReportCallback;
 
+RenderItem* sphere = NULL;
 
 // Initialize physics engine
 void initPhysics(bool interactive)
@@ -40,9 +41,9 @@ void initPhysics(bool interactive)
 
 	gPvd = PxCreatePvd(*gFoundation);
 	PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate(PVD_HOST, 5425, 10);
-	gPvd->connect(*transport,PxPvdInstrumentationFlag::eALL);
+	gPvd->connect(*transport, PxPvdInstrumentationFlag::eALL);
 
-	gPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *gFoundation, PxTolerancesScale(),true,gPvd);
+	gPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *gFoundation, PxTolerancesScale(), true, gPvd);
 
 	gMaterial = gPhysics->createMaterial(0.5f, 0.5f, 0.6f);
 
@@ -54,7 +55,10 @@ void initPhysics(bool interactive)
 	sceneDesc.filterShader = contactReportFilterShader;
 	sceneDesc.simulationEventCallback = &gContactReportCallback;
 	gScene = gPhysics->createScene(sceneDesc);
-	}
+
+	sphere = new RenderItem(CreateShape(PxSphereGeometry(3)), new PxTransform(0, 0, 0), { 1,1,1,1 });
+	RegisterRenderItem(sphere);
+}
 
 
 // Function to configure what happens in each step of physics
@@ -78,23 +82,24 @@ void cleanupPhysics(bool interactive)
 	gScene->release();
 	gDispatcher->release();
 	// -----------------------------------------------------
-	gPhysics->release();	
+	gPhysics->release();
 	PxPvdTransport* transport = gPvd->getTransport();
 	gPvd->release();
 	transport->release();
-	
+
 	gFoundation->release();
-	}
+	DeregisterRenderItem(sphere);
+}
 
 // Function called when a key is pressed
 void keyPress(unsigned char key, const PxTransform& camera)
 {
 	PX_UNUSED(camera);
 
-	switch(toupper(key))
+	switch (toupper(key))
 	{
-	//case 'B': break;
-	//case ' ':	break;
+		//case 'B': break;
+		//case ' ':	break;
 	case ' ':
 	{
 		break;
@@ -111,7 +116,7 @@ void onCollision(physx::PxActor* actor1, physx::PxActor* actor2)
 }
 
 
-int main(int, const char*const*)
+int main(int, const char* const*)
 {
 #ifndef OFFLINE_EXECUTION 
 	extern void renderLoop();
@@ -119,10 +124,9 @@ int main(int, const char*const*)
 #else
 	static const PxU32 frameCount = 100;
 	initPhysics(false);
-	for(PxU32 i=0; i<frameCount; i++)
+	for (PxU32 i = 0; i < frameCount; i++)
 		stepPhysics(false);
 	cleanupPhysics(false);
 #endif
-
 	return 0;
 }
