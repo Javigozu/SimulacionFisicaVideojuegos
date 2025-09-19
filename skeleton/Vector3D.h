@@ -17,7 +17,7 @@ public:
 	inline void setY(float _x) { x = _x; }
 	inline void setZ(float _x) { x = _x; }
 
-	inline float magnitude() {
+	inline float magnitude() const {
 		float sq = x * x + y * y + z * z;
 		return sqrt(sq);
 	}
@@ -27,10 +27,10 @@ public:
 		y = y / mg;
 		z = z / mg;
 	}
-	inline Vector3D escalar(float p) {
+	inline Vector3D escalar(float p) const {
 		return { x * p, y * p, z * p };
 	}
-	inline float prodEsc(const Vector3D& v) {
+	inline float prodEsc(const Vector3D& v) const {
 		return x * v.x + y * v.y + z * v.z;
 	}
 
@@ -39,16 +39,16 @@ public:
 		y = v.y;
 		z = v.z;
 	}
-	inline Vector3D operator+ (const Vector3D& v) {
+	inline Vector3D operator+ (const Vector3D& v) const{
 		return { x + v.x, y + v.y, z + v.z };
 	}
-	inline Vector3D operator- (const Vector3D& v) {
+	inline Vector3D operator- (const Vector3D& v) const{
 		return { x - v.x, y - v.y, z - v.z };
 	}
-	inline float operator* (const Vector3D& v) {
+	inline float operator* (const Vector3D& v) const{
 		return prodEsc(v);
 	}
-	inline Vector3D operator* (float p) {
+	inline Vector3D operator* (float p) const{
 		return escalar(p);
 	}
 };
