@@ -88,7 +88,7 @@ void initPhysics(bool interactive)
 	gScene = gPhysics->createScene(sceneDesc);
 
 	axes();
-	cube = new Particle({ 10.0f,0.0f,0.0f }, { -50.0f, 0.0f, 0.0f });
+	cube = new Particle({-50.0f, 0.0f, 0.0f},{ 10.0f,0.0f,0.0f }, {0.0f,0.0f,0.0f}, 0.9);
 }
 
 // Function to configure what happens in each step of physics
