@@ -7,6 +7,7 @@
 #include "core.hpp"
 #include "RenderUtils.hpp"
 #include "callbacks.hpp"
+#include "Vector3D.h"
 
 #include <iostream>
 
@@ -30,7 +31,33 @@ PxDefaultCpuDispatcher* gDispatcher = NULL;
 PxScene* gScene = NULL;
 ContactReportCallback gContactReportCallback;
 
-RenderItem* sphere = NULL;
+RenderItem* _zero = NULL;
+RenderItem* _xAxes = NULL;
+RenderItem* _yAxes = NULL;
+RenderItem* _zAxes = NULL;
+
+void axes() {
+	Vector3D xAxes(10.0f, 0.0f, 0.0f);
+	Vector3D yAxes(0.0f, 10.0f, 0.0f);
+	Vector3D zAxes(0.0f, 0.0f, 10.0f);
+	Vector3D zero;
+	float radio = 2.0f;
+
+	_zero = new RenderItem(CreateShape(PxSphereGeometry(radio)), new PxTransform(zero.getX(), zero.getY(), zero.getZ()), { 1,1,1,1 });
+	RegisterRenderItem(_zero);
+	_xAxes = new RenderItem(CreateShape(PxSphereGeometry(radio)), new PxTransform(xAxes.getX(), xAxes.getY(), yAxes.getZ()), {1,0,0,1});
+	RegisterRenderItem(_xAxes);
+	_yAxes = new RenderItem(CreateShape(PxSphereGeometry(radio)), new PxTransform(yAxes.getX(), yAxes.getY(), yAxes.getZ()), { 0,1,0,1 });
+	RegisterRenderItem(_yAxes);
+	_zAxes = new RenderItem(CreateShape(PxSphereGeometry(radio)), new PxTransform(zAxes.getX(), zAxes.getY(), zAxes.getZ()), { 0,0,1,1 });
+	RegisterRenderItem(_zAxes);
+}
+void DeregisterAxes() {
+	DeregisterRenderItem(_zero);
+	DeregisterRenderItem(_xAxes);
+	DeregisterRenderItem(_yAxes);
+	DeregisterRenderItem(_zAxes);
+}
 
 // Initialize physics engine
 void initPhysics(bool interactive)
@@ -56,10 +83,8 @@ void initPhysics(bool interactive)
 	sceneDesc.simulationEventCallback = &gContactReportCallback;
 	gScene = gPhysics->createScene(sceneDesc);
 
-	sphere = new RenderItem(CreateShape(PxSphereGeometry(3)), new PxTransform(0, 0, 0), { 1,1,1,1 });
-	RegisterRenderItem(sphere);
+	axes();
 }
-
 
 // Function to configure what happens in each step of physics
 // interactive: true if the game is rendering, false if it offline
@@ -88,7 +113,7 @@ void cleanupPhysics(bool interactive)
 	transport->release();
 
 	gFoundation->release();
-	DeregisterRenderItem(sphere);
+	DeregisterAxes();
 }
 
 // Function called when a key is pressed
