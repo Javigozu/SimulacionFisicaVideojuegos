@@ -7,7 +7,9 @@
 #include "core.hpp"
 #include "RenderUtils.hpp"
 #include "callbacks.hpp"
+
 #include "Vector3D.h"
+#include "Particle.h"
 
 #include <iostream>
 
@@ -35,6 +37,8 @@ RenderItem* _zero = NULL;
 RenderItem* _xAxes = NULL;
 RenderItem* _yAxes = NULL;
 RenderItem* _zAxes = NULL;
+
+Particle* cube;
 
 void axes() {
 	Vector3D xAxes(10.0f, 0.0f, 0.0f);
@@ -84,6 +88,7 @@ void initPhysics(bool interactive)
 	gScene = gPhysics->createScene(sceneDesc);
 
 	axes();
+	cube = new Particle({ 10.0f,0.0f,0.0f }, { -50.0f, 0.0f, 0.0f });
 }
 
 // Function to configure what happens in each step of physics
@@ -94,6 +99,7 @@ void stepPhysics(bool interactive, double t)
 	PX_UNUSED(interactive);
 
 	gScene->simulate(t);
+	cube->integrate(t);
 	gScene->fetchResults(true);
 }
 
@@ -114,6 +120,8 @@ void cleanupPhysics(bool interactive)
 
 	gFoundation->release();
 	DeregisterAxes();
+
+	delete cube;
 }
 
 // Function called when a key is pressed
