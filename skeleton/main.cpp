@@ -10,6 +10,7 @@
 
 #include "Vector3D.h"
 #include "Particle.h"
+#include "Projectile.h"
 
 #include <iostream>
 
@@ -38,7 +39,7 @@ RenderItem* _xAxes = NULL;
 RenderItem* _yAxes = NULL;
 RenderItem* _zAxes = NULL;
 
-Particle* cube;
+std::vector<Projectile*> gun;
 
 void axes() {
 	Vector3D xAxes(10.0f, 0.0f, 0.0f);
@@ -49,7 +50,7 @@ void axes() {
 
 	_zero = new RenderItem(CreateShape(PxSphereGeometry(radio)), new PxTransform(zero.getX(), zero.getY(), zero.getZ()), { 1,1,1,1 });
 	RegisterRenderItem(_zero);
-	_xAxes = new RenderItem(CreateShape(PxSphereGeometry(radio)), new PxTransform(xAxes.getX(), xAxes.getY(), yAxes.getZ()), {1,0,0,1});
+	_xAxes = new RenderItem(CreateShape(PxSphereGeometry(radio)), new PxTransform(xAxes.getX(), xAxes.getY(), yAxes.getZ()), { 1,0,0,1 });
 	RegisterRenderItem(_xAxes);
 	_yAxes = new RenderItem(CreateShape(PxSphereGeometry(radio)), new PxTransform(yAxes.getX(), yAxes.getY(), yAxes.getZ()), { 0,1,0,1 });
 	RegisterRenderItem(_yAxes);
@@ -88,7 +89,6 @@ void initPhysics(bool interactive)
 	gScene = gPhysics->createScene(sceneDesc);
 
 	axes();
-	cube = new Particle({-50.0f, 0.0f, 0.0f},{ 10.0f,0.0f,0.0f }, {0.0f,0.0f,0.0f}, 0.9);
 }
 
 // Function to configure what happens in each step of physics
@@ -99,7 +99,7 @@ void stepPhysics(bool interactive, double t)
 	PX_UNUSED(interactive);
 
 	gScene->simulate(t);
-	cube->integrate(t);
+	for (auto p : gun) p->integrate(t);
 	gScene->fetchResults(true);
 }
 
@@ -121,7 +121,7 @@ void cleanupPhysics(bool interactive)
 	gFoundation->release();
 	DeregisterAxes();
 
-	delete cube;
+	for (auto p : gun) delete p;
 }
 
 // Function called when a key is pressed
@@ -135,6 +135,7 @@ void keyPress(unsigned char key, const PxTransform& camera)
 		//case ' ':	break;
 	case ' ':
 	{
+		gun.push_back(new Projectile(GetCamera()->getEye(), GetCamera()->getDir(), 400.0, 40.0, 0.5));
 		break;
 	}
 	default:
