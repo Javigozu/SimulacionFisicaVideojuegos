@@ -11,6 +11,7 @@
 #include "Vector3D.h"
 #include "Particle.h"
 #include "Projectile.h"
+#include "ParticleSystem.h"
 
 #include <iostream>
 
@@ -39,7 +40,12 @@ RenderItem* _xAxes = NULL;
 RenderItem* _yAxes = NULL;
 RenderItem* _zAxes = NULL;
 
+PxGeometry* bullet1;
+PxGeometry* bullet2;
+
 std::vector<Projectile*> gun;
+ParticleSystem* f;
+
 
 void axes() {
 	Vector3D xAxes(10.0f, 0.0f, 0.0f);
@@ -89,6 +95,12 @@ void initPhysics(bool interactive)
 	gScene = gPhysics->createScene(sceneDesc);
 
 	axes();
+	bullet1 = new PxSphereGeometry(1.0);
+	bullet2 = new PxSphereGeometry(3.0);
+	f = new ParticleSystem(5.0);
+	Particle* p = new Particle(bullet1, { 0,0.7,1,1 }, { 0, 50, 0 }, { 0, 0, 0 },{0.0, -9.8, 0.0});
+	ParticleGenerator* g = new ParticleGenerator(p, { 5,5,5 }, { 1,0,1 });
+	f->addGen(g);
 }
 
 // Function to configure what happens in each step of physics
@@ -100,6 +112,7 @@ void stepPhysics(bool interactive, double t)
 
 	gScene->simulate(t);
 	for (auto p : gun) p->integrate(t);
+	f->update(t);
 	gScene->fetchResults(true);
 }
 
@@ -119,9 +132,12 @@ void cleanupPhysics(bool interactive)
 	transport->release();
 
 	gFoundation->release();
-	DeregisterAxes();
 
+	DeregisterAxes();
 	for (auto p : gun) delete p;
+	delete f;
+	delete bullet1;
+	delete bullet2;
 }
 
 // Function called when a key is pressed
@@ -134,10 +150,11 @@ void keyPress(unsigned char key, const PxTransform& camera)
 		//case 'B': break;
 		//case ' ':	break;
 	case ' ':
-	{
-		gun.push_back(new Projectile(GetCamera()->getEye(), GetCamera()->getDir(), 400.0, 40.0, 0.5));
+		gun.push_back(new Projectile(bullet1, { 1,1,0,1 }, GetCamera()->getEye(), GetCamera()->getDir(), 400.0, 40.0, 0.5));
 		break;
-	}
+	case 'B':
+		gun.push_back(new Projectile(bullet2, { 1,0.3,0,1 }, GetCamera()->getEye(), GetCamera()->getDir(), 20, 5.0, 0.625));
+		break;
 	default:
 		break;
 	}
