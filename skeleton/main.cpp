@@ -45,6 +45,7 @@ PxGeometry* bullet2;
 
 std::vector<Projectile*> gun;
 ParticleSystem* f;
+ParticleSystem* wind;
 
 
 void axes() {
@@ -97,10 +98,29 @@ void initPhysics(bool interactive)
 	axes();
 	bullet1 = new PxSphereGeometry(1.0);
 	bullet2 = new PxSphereGeometry(3.0);
-	f = new ParticleSystem(5.0);
-	Particle* p = new Particle(bullet1, { 0,0.7,1,1 }, { 0, 50, 0 }, { 0, 0, 0 },{0.0, -9.8, 0.0});
-	ParticleGenerator* g = new ParticleGenerator(p, { 5,5,5 }, { 1,0,1 });
+	f = new ParticleSystem();
+	/*Particle* p = new Particle(bullet1, {0,0.7,1,1}, {0, 50, 0}, {0, 10, 0}, {0.0, 0.0, 0.0});
+	Particle* p2 = new Particle(bullet1, { 1,0.5,0,1 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0.0, 0.0, 0.0 }, 1.0, 1.0, 0.0);
+	ParticleGenerator* g = new FountainGenerator(p, { 1,0,1 }, { 2,20,2 });
+	ParticleGenerator* g2 = new UniformGenerator(p2, { 5, 5, 5 }, { 10,10,10 }, -1, 1);
 	f->addGen(g);
+	f->addGen(g2);*/
+
+	Particle* p = new Particle(bullet1, { 1,0,0.5,1 }, { 0, 50, 0 }, { 0, 0, 0 }, { 0.0, 0.0, 0.0 }, 1.0, 1.0, 0.0);
+	Particle* p2 = new Particle(bullet2, { 1,0.5,0,1 }, { 0, 50, 20 }, { 0, 0, 0 }, { 0.0, 0.0, 0.0 }, 1.0, 20.0, 0.0);
+	f->addParticle(p);
+	f->addParticle(p2);
+
+	GravityGenerator* g = new GravityGenerator();
+	f->addForce(g);
+	WindGenerator* w = new WindGenerator({ -20,30,0 }, { 40,60,50 }, { 0,3,100 });
+	f->addForce(w);
+
+	wind = new ParticleSystem(0.5, 5.0);
+	Particle* pw = new Particle(bullet1, { 0,1,1,1 }, { 0, 40, 10 }, { 0, 0, 0 }, { 0.0, 0.0, 0.0 }, 1.0, 1.0, 0.0);
+	ParticleGenerator* u = new UniformGenerator(pw, { 10,5,10 }, { 0,0,0 });
+	wind->addGen(u);
+	wind->addForce(w);
 }
 
 // Function to configure what happens in each step of physics
@@ -111,8 +131,9 @@ void stepPhysics(bool interactive, double t)
 	PX_UNUSED(interactive);
 
 	gScene->simulate(t);
-	for (auto p : gun) p->integrate(t);
 	f->update(t);
+	wind->update(t);
+	for (auto p : gun) p->integrate(t);
 	gScene->fetchResults(true);
 }
 
@@ -136,6 +157,7 @@ void cleanupPhysics(bool interactive)
 	DeregisterAxes();
 	for (auto p : gun) delete p;
 	delete f;
+	delete wind;
 	delete bullet1;
 	delete bullet2;
 }
@@ -153,7 +175,7 @@ void keyPress(unsigned char key, const PxTransform& camera)
 		gun.push_back(new Projectile(bullet1, { 1,1,0,1 }, GetCamera()->getEye(), GetCamera()->getDir(), 400.0, 40.0, 0.5));
 		break;
 	case 'B':
-		gun.push_back(new Projectile(bullet2, { 1,0.3,0,1 }, GetCamera()->getEye(), GetCamera()->getDir(), 20, 5.0, 0.625));
+		gun.push_back(new Projectile(bullet2, { 1,0.3,0,1 }, GetCamera()->getEye(), GetCamera()->getDir(), 20.0, 15.0, 0.625));
 		break;
 	default:
 		break;

@@ -16,8 +16,8 @@ public:
 	inline double& getY() { return y; }
 	inline double& getZ() { return z; }
 	inline void setX(double _x) { x = _x; }
-	inline void setY(double _x) { x = _x; }
-	inline void setZ(double _x) { x = _x; }
+	inline void setY(double _y) { y = _y; }
+	inline void setZ(double _z) { z = _z; }
 
 	inline double magnitude() const {
 		double sq = x * x + y * y + z * z;
@@ -53,5 +53,8 @@ public:
 	}
 	inline Vector3D operator* (double p) const{
 		return escalar(p);
+	}
+	inline Vector3D operator/ (double p) const {
+		return { x / p, y / p, z / p };
 	}
 };

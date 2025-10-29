@@ -13,14 +13,17 @@ public:
 	inline Vector3D getVel() const { return vel; }
 	inline Vector3D getAcc() const { return acc; }
 	inline void setAcc(Vector3D newAcc) { acc = newAcc; }
+	void updateForces(Vector3D f);
+
 	inline double getMass() const { return mass; }
 	inline double getDamp() const { return damping; }
 	inline double getGrav() const { return gravity; }
 	inline double getTime() const { return time; }
-	inline void addTime(double t) { time += t; }
 	inline Vector3D getPos() const { return { pose.p.x, pose.p.y, pose.p.z }; }
 	inline physx::PxGeometry* getGeo() const { return geo; }
 	inline Vector4 getColor() { return color; }
+
+	inline void addTime(double t) { time += t; }
 protected:
 	Vector3D vel;
 	Vector3D acc;
