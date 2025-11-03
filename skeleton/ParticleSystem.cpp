@@ -30,6 +30,7 @@ void ParticleSystem::update(double t) {
 		Particle* p = *it;
 		Vector3D fuerzas = { 0.0,0.0,0.0 };
 		for (auto& f : forces) {
+			f->updateTime(t);
 			fuerzas = fuerzas + f->applyForce(p);
 		}
 		p->updateForces(fuerzas);

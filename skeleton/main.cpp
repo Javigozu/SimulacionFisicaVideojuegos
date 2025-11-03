@@ -46,7 +46,7 @@ PxGeometry* bullet2;
 std::vector<Projectile*> gun;
 ParticleSystem* f;
 ParticleSystem* wind;
-
+ExplosionGenerator* e;
 
 void axes() {
 	Vector3D xAxes(10.0f, 0.0f, 0.0f);
@@ -107,20 +107,25 @@ void initPhysics(bool interactive)
 	f->addGen(g2);*/
 
 	Particle* p = new Particle(bullet1, { 1,0,0.5,1 }, { 0, 50, 0 }, { 0, 0, 0 }, { 0.0, 0.0, 0.0 }, 1.0, 1.0, 0.0);
-	Particle* p2 = new Particle(bullet2, { 1,0.5,0,1 }, { 0, 50, 20 }, { 0, 0, 0 }, { 0.0, 0.0, 0.0 }, 1.0, 20.0, 0.0);
+	Particle* p2 = new Particle(bullet2, { 1,0.5,0,1 }, { 0, 50, 20 }, { 0, 0, 0 }, { 0.0, 0.0, 0.0 }, 1.0, 10.0, 0.0);
 	f->addParticle(p);
 	f->addParticle(p2);
 
 	GravityGenerator* g = new GravityGenerator();
 	f->addForce(g);
-	WindGenerator* w = new WindGenerator({ -20,30,0 }, { 40,60,50 }, { 0,3,100 });
+	WindGenerator* w = new WindGenerator({ -50,10,-30 }, { 100,60,60 }, { 0,3,100 });
 	f->addForce(w);
 
-	wind = new ParticleSystem(0.5, 5.0);
+	wind = new ParticleSystem(0.2, 10.0);
 	Particle* pw = new Particle(bullet1, { 0,1,1,1 }, { 0, 40, 10 }, { 0, 0, 0 }, { 0.0, 0.0, 0.0 }, 1.0, 1.0, 0.0);
+	Particle* px = new Particle(bullet1, { 1,0,0,1 }, { 0,0, 0 }, { 0,0,0 }, { 0.0, 0.0, 0.0 }, 0.7, 1.0, 0.0);
 	ParticleGenerator* u = new UniformGenerator(pw, { 10,5,10 }, { 0,0,0 });
+	ParticleGenerator* x = new UniformGenerator(px, { 2,2,2 }, { 0,0,0 });
 	wind->addGen(u);
+	wind->addGen(x);
 	wind->addForce(w);
+	e = new ExplosionGenerator({ 0.0,0.0,0.0 }, 20, 200,10);
+	wind->addForce(e);
 }
 
 // Function to configure what happens in each step of physics
@@ -160,6 +165,7 @@ void cleanupPhysics(bool interactive)
 	delete wind;
 	delete bullet1;
 	delete bullet2;
+	delete e;
 }
 
 // Function called when a key is pressed
@@ -176,6 +182,9 @@ void keyPress(unsigned char key, const PxTransform& camera)
 		break;
 	case 'B':
 		gun.push_back(new Projectile(bullet2, { 1,0.3,0,1 }, GetCamera()->getEye(), GetCamera()->getDir(), 20.0, 15.0, 0.625));
+		break;
+	case 'H':
+		e->reset();
 		break;
 	default:
 		break;
