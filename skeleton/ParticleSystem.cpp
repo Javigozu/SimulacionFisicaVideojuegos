@@ -15,12 +15,12 @@ ParticleSystem::~ParticleSystem() {
 			g = nullptr;
 		}
 	}
-	/*for (auto& f : forces) {
-		if (f != nullptr) {
-			delete f;
-			f = nullptr;
-		}
-	}*/
+	//for (auto& f : forces) {
+	//	if (f != nullptr) {
+	//		delete f;
+	//		f = nullptr;
+	//	}
+	//}
 }
 
 void ParticleSystem::update(double t) {
@@ -30,8 +30,10 @@ void ParticleSystem::update(double t) {
 		Particle* p = *it;
 		Vector3D fuerzas = { 0.0,0.0,0.0 };
 		for (auto& f : forces) {
-			f->updateTime(t);
-			fuerzas = fuerzas + f->applyForce(p);
+			if (f->getActive()) {
+				f->updateTime(t);
+				fuerzas = fuerzas + f->applyForce(p);
+			}
 		}
 		p->updateForces(fuerzas);
 		p->addTime(t);

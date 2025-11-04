@@ -40,12 +40,17 @@ RenderItem* _xAxes = NULL;
 RenderItem* _yAxes = NULL;
 RenderItem* _zAxes = NULL;
 
+//--------------------------------------!
+//Particulas
 PxGeometry* bullet1;
 PxGeometry* bullet2;
 
-std::vector<Projectile*> gun;
-ParticleSystem* f;
+ParticleSystem* gun;
+ParticleSystem* system1;
 ParticleSystem* wind;
+
+WindGenerator* w;
+GravityGenerator* g;
 ExplosionGenerator* e;
 
 void axes() {
@@ -95,37 +100,30 @@ void initPhysics(bool interactive)
 	sceneDesc.simulationEventCallback = &gContactReportCallback;
 	gScene = gPhysics->createScene(sceneDesc);
 
+	//-------------------------------------!
 	axes();
 	bullet1 = new PxSphereGeometry(1.0);
 	bullet2 = new PxSphereGeometry(3.0);
-	f = new ParticleSystem();
-	/*Particle* p = new Particle(bullet1, {0,0.7,1,1}, {0, 50, 0}, {0, 10, 0}, {0.0, 0.0, 0.0});
-	Particle* p2 = new Particle(bullet1, { 1,0.5,0,1 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0.0, 0.0, 0.0 }, 1.0, 1.0, 0.0);
-	ParticleGenerator* g = new FountainGenerator(p, { 1,0,1 }, { 2,20,2 });
-	ParticleGenerator* g2 = new UniformGenerator(p2, { 5, 5, 5 }, { 10,10,10 }, -1, 1);
-	f->addGen(g);
-	f->addGen(g2);*/
 
-	Particle* p = new Particle(bullet1, { 1,0,0.5,1 }, { 0, 50, 0 }, { 0, 0, 0 }, { 0.0, 0.0, 0.0 }, 1.0, 1.0, 0.0);
-	Particle* p2 = new Particle(bullet2, { 1,0.5,0,1 }, { 0, 50, 20 }, { 0, 0, 0 }, { 0.0, 0.0, 0.0 }, 1.0, 10.0, 0.0);
-	f->addParticle(p);
-	f->addParticle(p2);
-
-	GravityGenerator* g = new GravityGenerator();
-	f->addForce(g);
-	WindGenerator* w = new WindGenerator({ -50,10,-30 }, { 100,60,60 }, { 0,3,100 });
-	f->addForce(w);
+	gun = new ParticleSystem();
+	g = new GravityGenerator();
+	gun->addForce(g);
 
 	wind = new ParticleSystem(0.2, 10.0);
+	w = new WindGenerator({ -10,20,-5 }, { 20,40,60 }, { 0,3,100 });
 	Particle* pw = new Particle(bullet1, { 0,1,1,1 }, { 0, 40, 10 }, { 0, 0, 0 }, { 0.0, 0.0, 0.0 }, 1.0, 1.0, 0.0);
-	Particle* px = new Particle(bullet1, { 1,0,0,1 }, { 0,0, 0 }, { 0,0,0 }, { 0.0, 0.0, 0.0 }, 0.7, 1.0, 0.0);
 	ParticleGenerator* u = new UniformGenerator(pw, { 10,5,10 }, { 0,0,0 });
-	ParticleGenerator* x = new UniformGenerator(px, { 2,2,2 }, { 0,0,0 });
 	wind->addGen(u);
-	wind->addGen(x);
 	wind->addForce(w);
-	e = new ExplosionGenerator({ 0.0,0.0,0.0 }, 20, 200,10);
-	wind->addForce(e);
+
+	system1 = new ParticleSystem(0.3,10);
+	e = new ExplosionGenerator({ 0.0,0.0,0.0 }, 20, 1000, 5, 4);
+	system1->addForce(g);
+	system1->addForce(e);
+	system1->addForce(w);
+	Particle* px = new Particle(bullet1, { 1,0,0,1 }, { 0,0,0 }, { 0,10,0 }, { 0.0, 0.0, 0.0 }, 0.7, 1.0, 0.0);
+	ParticleGenerator* x = new UniformGenerator(px, { 2,2,2 }, { 0,0,0 });
+	system1->addGen(x);
 }
 
 // Function to configure what happens in each step of physics
@@ -136,9 +134,12 @@ void stepPhysics(bool interactive, double t)
 	PX_UNUSED(interactive);
 
 	gScene->simulate(t);
-	f->update(t);
+	//----------------------------------!
+	gun->update(t);
+	system1->update(t);
 	wind->update(t);
-	for (auto p : gun) p->integrate(t);
+
+	//
 	gScene->fetchResults(true);
 }
 
@@ -160,11 +161,13 @@ void cleanupPhysics(bool interactive)
 	gFoundation->release();
 
 	DeregisterAxes();
-	for (auto p : gun) delete p;
-	delete f;
+	delete gun;
+	delete system1;
 	delete wind;
 	delete bullet1;
 	delete bullet2;
+	delete g;
+	delete w;
 	delete e;
 }
 
@@ -175,15 +178,14 @@ void keyPress(unsigned char key, const PxTransform& camera)
 
 	switch (toupper(key))
 	{
-		//case 'B': break;
-		//case ' ':	break;
 	case ' ':
-		gun.push_back(new Projectile(bullet1, { 1,1,0,1 }, GetCamera()->getEye(), GetCamera()->getDir(), 400.0, 40.0, 0.5));
+		gun->addParticle(new Projectile(bullet1, { 1,1,0,1 }, GetCamera()->getEye(), GetCamera()->getDir(), 400.0, 40.0, 0.5));
 		break;
 	case 'B':
-		gun.push_back(new Projectile(bullet2, { 1,0.3,0,1 }, GetCamera()->getEye(), GetCamera()->getDir(), 20.0, 15.0, 0.625));
+		gun->addParticle(new Projectile(bullet2, { 1,0.3,0,1 }, GetCamera()->getEye(), GetCamera()->getDir(), 10.0, 15.0, 0.65));
 		break;
 	case 'H':
+		e->activate(true);//!e->getActive());
 		e->reset();
 		break;
 	default:

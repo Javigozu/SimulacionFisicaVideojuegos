@@ -22,6 +22,6 @@ void Particle::integrate(double t) {
 	vel = vel * pow(damping, t) + (acc * t);
 	pose.p += Vector3(vel.getX(), vel.getY(), vel.getZ()) * t;
 }
-void Particle::updateForces(Vector3D f) {
-	setAcc(f / mass);
+void Particle::updateForces(Vector3D system1) {
+	setAcc(system1 / mass);
 }

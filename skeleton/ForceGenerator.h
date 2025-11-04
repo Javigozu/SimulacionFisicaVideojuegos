@@ -1,10 +1,14 @@
 #pragma once
-#include <cmath>
 #include "Particle.h"
 class ForceGenerator {
+protected:
+	bool active;
 public:
+	ForceGenerator() : active(true) {}
 	virtual void updateTime(double t) {}
 	virtual Vector3D applyForce(Particle* p) = 0;
+	void activate(bool a) { active = a; }
+	bool getActive() { return active; }
 };
 
 class GravityGenerator :public ForceGenerator {
@@ -51,14 +55,20 @@ public:
 class ExplosionGenerator :public ForceGenerator {
 private:
 	Vector3D Pos;
-	double R, K, T, time;
+	double R, newR, K, T, time, vel;
 public:
-	ExplosionGenerator(Vector3D pos, double r, double k, double t) : Pos(pos), R(r), K(k), T(t), time(0.0) {}
-	void reset() { time = 0.0; }
-	virtual void updateTime(double t) override { time += t; }
+	ExplosionGenerator(Vector3D pos, double r, double k, double t, double v = 0.0) : Pos(pos), R(r), K(k), T(t), time(0.0), vel(v) { active = false; }
+	void reset() {
+		time = 0.0;
+		newR = R;
+	}
+	virtual void updateTime(double t) override {
+		time += t;
+		newR = newR + vel * t;
+	}
 	virtual Vector3D applyForce(Particle* p) override {
 		double r = (p->getPos() - Pos).magnitude();
-		if (r < R) return (p->getPos() - Pos) * (K / (r * r)) * exp(-(time / T));
+		if (r < newR) return (p->getPos() - Pos) * (K / (r * r)) * physx::PxExp(-time / T);
 		else return { 0.0,0.0,0.0 };
 	}
 };

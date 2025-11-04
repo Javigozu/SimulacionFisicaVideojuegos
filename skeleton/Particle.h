@@ -13,7 +13,7 @@ public:
 	inline Vector3D getVel() const { return vel; }
 	inline Vector3D getAcc() const { return acc; }
 	inline void setAcc(Vector3D newAcc) { acc = newAcc; }
-	void updateForces(Vector3D f);
+	void updateForces(Vector3D system1);
 
 	inline double getMass() const { return mass; }
 	inline double getDamp() const { return damping; }
