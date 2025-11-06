@@ -6,13 +6,16 @@ protected:
 	Particle* model;
 	Vector3D distPos;
 	Vector3D distVel;
+	bool generate;
 	std::mt19937 mt;
 	std::uniform_real_distribution<double> u;
 	std::normal_distribution<double> n;
 public:
-	ParticleGenerator(Particle* p, Vector3D dpos, Vector3D dvel) : model(p), distPos(dpos), distVel(dvel), mt(){
+	ParticleGenerator(Particle* p, Vector3D dpos, Vector3D dvel) : model(p), distPos(dpos), distVel(dvel), generate(true), mt(){
 	}
 	virtual ~ParticleGenerator() { delete model; }
+	void activate(bool a) { generate = a; }
+	bool getActive() const { return generate; }
 	virtual Particle* addParticle() = 0;
 };
 
@@ -29,7 +32,7 @@ public:
 };
 class NormalGenerator : public ParticleGenerator {
 public:
-	NormalGenerator(Particle* p, Vector3D dpos, Vector3D dvel, double m, double v) : ParticleGenerator(p, dpos, dvel) {
+	NormalGenerator(Particle* p, Vector3D dpos, Vector3D dvel, double m = 0.0, double v = 1.0) : ParticleGenerator(p, dpos, dvel) {
 		n = std::normal_distribution<double>(m, v);
 	}
 	virtual Particle* addParticle() override {

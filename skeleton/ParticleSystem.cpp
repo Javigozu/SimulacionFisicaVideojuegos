@@ -1,7 +1,8 @@
 #include "ParticleSystem.h"
 using namespace std;
 
-ParticleSystem::ParticleSystem(double add, double time) : symTime(time), addTime(add), next(0.0) {}
+ParticleSystem::ParticleSystem(double r, Vector3D o, double add, double time) : particle(), generators(), forces(), R(r), origen(o), symTime(time), addTime(add), next(0.0)
+{	}
 ParticleSystem::~ParticleSystem() {
 	for (auto& p : particle) {
 		if (p != nullptr) {
@@ -22,11 +23,24 @@ ParticleSystem::~ParticleSystem() {
 	//	}
 	//}
 }
+void ParticleSystem::activate(bool a) {
+	for (auto& gen : generators) {
+		gen->activate(a);
+	}
+}
+
 
 void ParticleSystem::update(double t) {
 	next += t;
-	list<Particle*>::iterator it = particle.begin();
-	while (it != particle.end()) {
+	for (auto& g : generators) {
+		if (next > addTime && g->getActive()) {
+			Particle* p = g->addParticle();
+			particle.push_back(p);
+		}
+	}
+	if (next > addTime) next = 0.0;
+
+	for (auto& it = particle.begin(); it != particle.end();) {
 		Particle* p = *it;
 		Vector3D fuerzas = { 0.0,0.0,0.0 };
 		for (auto& f : forces) {
@@ -38,18 +52,13 @@ void ParticleSystem::update(double t) {
 		p->updateForces(fuerzas);
 		p->addTime(t);
 		p->integrate(t);
-		if (p->getTime() > symTime && symTime != 0.0) {
-			it = particle.erase(it);
+		if ((p->getTime() > symTime && symTime != 0.0) || (p->getPos() - origen).magnitude() > R) {
 			delete p;
+			p = nullptr;
+			it = particle.erase(it);
 		}
 		else ++it;
 	}
-	for (auto& g : generators) {
-		if (next > addTime) {
-			particle.push_back(g->addParticle());
-		}
-	}
-	if (next > addTime) next = 0.0;
 }
 void ParticleSystem::addParticle(Particle* p) {
 	particle.push_back(p);

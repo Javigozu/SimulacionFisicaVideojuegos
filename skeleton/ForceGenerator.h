@@ -62,6 +62,7 @@ public:
 		time = 0.0;
 		newR = R;
 	}
+	void setPos(Vector3D p) { Pos = p; }
 	virtual void updateTime(double t) override {
 		time += t;
 		newR = newR + vel * t;

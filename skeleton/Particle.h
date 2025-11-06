@@ -13,7 +13,9 @@ public:
 	inline Vector3D getVel() const { return vel; }
 	inline Vector3D getAcc() const { return acc; }
 	inline void setAcc(Vector3D newAcc) { acc = newAcc; }
-	void updateForces(Vector3D system1);
+	inline void setVel(Vector3D newVel) { vel = newVel; }
+	inline void setPos(Vector3D newPos) { pose.p = { (float)newPos.getX(), (float)newPos.getY(), (float)newPos.getZ()}; }
+	void updateForces(Vector3D force);
 
 	inline double getMass() const { return mass; }
 	inline double getDamp() const { return damping; }
