@@ -55,7 +55,7 @@ Particle* px2 = nullptr; //particula explosion 1
 Particle* smoke = nullptr; //particula Humo
 //Parametros para la bola y la explosion
 bool ballActive = false; Vector3D ballPos(0.0, 70.0, 30.0);
-double expTime = 0.0, maxTime = 3.0;
+double expTime = 0.0, maxTime = 5.0;
 //Sistemas
 ParticleSystem* ballSys = NULL; //Sistema que guarda la pelota y gestiona las fuerzas
 ParticleSystem* explosion = NULL; //Sistemas para la explosion
@@ -125,10 +125,10 @@ void buildWalls() {
 	RegisterRenderItem(RightWall);
 	walls.push_back(RightWall);
 	//wind1
-	wind = new ParticleSystem(offset, { wallpos.getX(),windheight, wallpos.getZ() }, 0.1, 2.0);
 	w = new WindGenerator({ wallpos.getX() - fantam / 2,windheight - fantam / 2, wallpos.getZ() - fantam / 2 }, { fantam,fantam,offset }, { 0,0,offset });
 	Particle* pw = new Particle(sphereSmall, { 0.8,1,1,1 }, { wallpos.getX(),windheight, wallpos.getZ() }, { 0, 0, 0 }, { 0.0, 0.0, 0.0 }, 1.0, 1.0, 0.0);
 	ParticleGenerator* u = new UniformGenerator(pw, { fantam / 2,fantam / 2,0 }, { 0,0,0 }); //Generador uniforme
+	wind = new ParticleSystem(offset, { wallpos.getX(),windheight, wallpos.getZ() }, 0.1, 2.0);
 	wind->addGen(u);
 	wind->addForce(w);
 	//Suelo
@@ -192,11 +192,11 @@ void initPhysics(bool interactive)
 	ballSys->addForce(g);
 	//Explosion
 	e = new ExplosionGenerator({ 0.0,0.0,0.0 }, 40, 800, 10, 5); //Fuerza
-	px1 = new Particle(sphereSmall, { 1,0.8,0,1 }, { 0,0,0 }, { 0,0,0 }, { 0.0, 0.0, 0.0 }, 1.0, 0.8); //Particula ligera
+	px1 = new Particle(sphereSmall, { 1,0.8,0,1 }, { 0,0,0 }, { 0,0,0 }, { 0.0, 0.0, 0.0 }, 1.0, 0.7); //Particula ligera
 	ParticleGenerator* x1 = new NormalGenerator(px1, { 1,1,1 }, { 0,0,0 }); //Generador normal 1
-	px2 = new Particle(sphereSmall, { 1,0.2,0,1 }, { 0,0,0 }, { 0,0,0 }, { 0.0, 0.0, 0.0 }, 1.0, 2.0); //particula pesada
+	px2 = new Particle(sphereSmall, { 1,0.2,0,1 }, { 0,0,0 }, { 0,0,0 }, { 0.0, 0.0, 0.0 }, 1.0, 3.0); //particula pesada
 	ParticleGenerator* x2 = new NormalGenerator(px2, { 3,3,3 }, { 0,0,0 }); //Generador normal 2
-	smoke = new Particle(sphereBig, { 0.2,0.2,0.2,1.0 }, { 0,0,0 }, { 0,10,0 }, { 0.0, 0.0, 0.0 }, 1.0, 2.0); //particula pesada
+	smoke = new Particle(sphereBig, { 0.2,0.2,0.2,1.0 }, { 0,0,0 }, { 0,10,0 }, { 0.0, 0.0, 0.0 }, 1.0, 2.0); //humo
 	ParticleGenerator* smk = new FountainGenerator(smoke, { 1,0,1 }, { 1,5,1 }); //Generador fuente
 	explosion = new ParticleSystem(15.0, {0,0,0}, 0.1, 2.0); //Sistema
 	explosion->addForce(e);
@@ -280,11 +280,16 @@ void keyPress(unsigned char key, const PxTransform& camera)
 		gun.push_back(new Projectile(cube, { 1,1,0,1 }, GetCamera()->getEye(), GetCamera()->getDir(), 800.0, 250.0, 1.0));
 		break;
 	case 'B':
-		gun.push_back(new Projectile(sphereBig, { 1,0.3,0,1 }, GetCamera()->getEye(), GetCamera()->getDir(), 100.0, 70.0, 120.0));
+		gun.push_back(new Projectile(sphereBig, { 1,0.3,0,1 }, GetCamera()->getEye(), GetCamera()->getDir(), 100.0, 25.0, 120.0));
 		break;
 	case 'X':
 		wind->activate(!w->getActive());
 		w->activate(!w->getActive());
+		break;
+	case 'M':
+		e->activate(!e->getActive());
+		e->reset();
+		break;
 	default:
 		break;
 	}

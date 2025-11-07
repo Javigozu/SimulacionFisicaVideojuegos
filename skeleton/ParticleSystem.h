@@ -6,7 +6,6 @@
 
 class ParticleSystem {
 private:
-	//std::list<Particle*> particle;
 	std::vector<Particle*> particle;
 	std::vector<ParticleGenerator*> generators;
 	std::vector<ForceGenerator*> forces;
