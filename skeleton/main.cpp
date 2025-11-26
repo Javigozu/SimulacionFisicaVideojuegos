@@ -65,6 +65,14 @@ WindGenerator* w = NULL;
 GravityGenerator* g = NULL;
 ExplosionGenerator* e = NULL;
 
+ParticleSystem* muelle1 = NULL;
+ParticleSystem* muelle2 = NULL;
+ParticleSystem* inmersion = NULL;
+
+SpringAnchorGenerator* muelle = NULL;
+SpringGenerator* muelleAB = NULL;
+SpringGenerator* muelleBA = NULL;
+
 void axes() {
 	Vector3D xAxes(10.0f, 0.0f, 0.0f);
 	Vector3D yAxes(0.0f, 10.0f, 0.0f);
@@ -205,6 +213,31 @@ void initPhysics(bool interactive)
 	explosion->addGen(smk);
 
 	explosion->activate(false);
+
+	//MUELLE _/\/\/\/\/\_
+	Particle* muelleando = new Particle(sphereSmall, { 0,0,1,1 }, { 40,35,0 }, { 0,0,0 }, { 0.0, 0.0, 0.0 }, 1.0, 5.0); //Particula ligera
+	Vector3D muellePos = { 40.0,40.0,0.0 };
+	muelle = new SpringAnchorGenerator(muellePos,10,(muelleando->getPos() - muellePos).magnitude()); //Fuerza
+	muelle1 = new ParticleSystem(1000,muellePos);
+	muelle1->addForce(g);
+	muelle1->addForce(muelle);
+	muelle1->addParticle(muelleando);
+
+	Particle* A = new Particle(sphereSmall, { 0,0.5,1,1 }, { 50,35,0 }, { 0,0,0 }, { 0.0, 0.0, 0.0 }, 1.0, 5.0);
+	Particle* B = new Particle(sphereSmall, { 0,1,1,1 }, { 70,35,0 }, { 0,0,0 }, { 0.0, 0.0, 0.0 }, 1.0, 5.0);
+	muelleAB = new SpringGenerator(A, 10, (A->getPos() - B->getPos()).magnitude()/2); //Fuerza
+	muelleBA = new SpringGenerator(B, 10, (A->getPos() - B->getPos()).magnitude()/2); //Fuerza
+	muelle2 = new ParticleSystem(1000, muellePos);
+	muelle2->addForce(muelleAB);
+	muelle2->addForce(muelleBA);
+	muelle2->addParticle(A);
+	muelle2->addParticle(B);
+
+	Particle* cuboAcuatic = new Particle(new physx::PxBoxGeometry(1,1,1), {0,1,0,1}, {20,10,0}, {0,0,0}, {0.0, 0.0, 0.0}, 1.0, 5.0);
+	inmersion = new ParticleSystem(1000, {0,0,0});
+	inmersion->addForce(new BuoyancyGenerator(60, 2, 1, 10.0));
+	inmersion->addForce(g);
+	inmersion->addParticle(cuboAcuatic);
 }
 
 // Function to configure what happens in each step of physics
@@ -225,7 +258,10 @@ void stepPhysics(bool interactive, double t)
 		ballSys->update(t);
 	for (auto& g : gun) g->integrate(t);
 	wind->update(t);
-
+	
+	muelle1->update(t);
+	muelle2->update(t);
+	inmersion->update(t);
 	//
 	gScene->fetchResults(true);
 }
@@ -289,6 +325,15 @@ void keyPress(unsigned char key, const PxTransform& camera)
 	case 'M':
 		e->activate(!e->getActive());
 		e->reset();
+		break;
+	case 'J':
+		muelle->setK(muelle->getK() - 1);
+		break;
+	case 'K':
+		muelle->setK(muelle->getK() + 1);
+		break;
+	case 'G':
+		g->activate(!g->getActive());
 		break;
 	default:
 		break;

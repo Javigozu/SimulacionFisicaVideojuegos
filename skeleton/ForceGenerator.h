@@ -5,6 +5,7 @@ protected:
 	bool active;
 public:
 	ForceGenerator() : active(true) {}
+	virtual ~ForceGenerator() {}
 	virtual void updateTime(double t) {}
 	virtual Vector3D applyForce(Particle* p) = 0;
 	void activate(bool a) { active = a; }
@@ -71,5 +72,78 @@ public:
 		double r = (p->getPos() - Pos).magnitude();
 		if (r < newR) return (p->getPos() - Pos) * (K / (r * r)) * physx::PxExp(-time / T);
 		else return { 0.0,0.0,0.0 };
+	}
+};
+
+class SpringAnchorGenerator : public ForceGenerator
+{
+private:
+	Vector3D Pos;
+	double K;
+	double lon;
+	RenderItem* anchor;
+public:
+	SpringAnchorGenerator(Vector3D pos, double k, double l)
+		: Pos(pos), K(k), lon(l)
+	{
+		anchor = new RenderItem(CreateShape(physx::PxBoxGeometry(0.3, 0.3, 0.3)), new physx::PxTransform(pos.getX(), pos.getY(), pos.getZ()), { 1,1,1,1 });
+		RegisterRenderItem(anchor);
+	}
+	virtual ~SpringAnchorGenerator() {
+		DeregisterRenderItem(anchor);
+	}
+	double getK() { return K; }
+	void setK(double k) { K = max(0, k); }
+	virtual Vector3D applyForce(Particle* p) override {
+		Vector3D dist = p->getPos() - Pos;
+		return dist * ((1 / dist.magnitude()) * (dist.magnitude() - lon) * -K);
+	}
+};
+
+class SpringGenerator : public ForceGenerator
+{
+private:
+	Particle* other;
+	double K;
+	double lon;
+public:
+	SpringGenerator(Particle* p, double k, double l) : other(p), K(k), lon(l)
+	{
+	}
+	double getK() { return K; }
+	void setK(double k) { K = max(0, k); }
+	virtual Vector3D applyForce(Particle* p) override {
+		if (p != other) {
+			Vector3D dist = p->getPos() - other->getPos();
+			return dist * ((1 / dist.magnitude()) * (dist.magnitude() - lon) * -K);
+		}
+		else return { 0.0,0.0,0.0 };
+	}
+};
+class BuoyancyGenerator : public ForceGenerator {
+private:
+	float  liquid_H, H, V, D;
+	const float g = 9.8;
+	RenderItem* liquid;
+public:
+	BuoyancyGenerator(float lh, float h, float v, float d) {
+		liquid_H = lh;
+		H = h;
+		V = v;
+		D = d;
+		liquid = new RenderItem(CreateShape(physx::PxBoxGeometry(50, 0.1, 50)),
+			new physx::PxTransform(0.0, lh, 0.0), { 0.0,0.6,1.0,0.5 });
+	}
+	virtual ~BuoyancyGenerator() {
+		DeregisterRenderItem(liquid);
+	}
+	virtual Vector3D applyForce(Particle* p) override {
+		float h = p->getPos().getY();
+		float h0 = liquid_H;
+			float inmersed;
+			if (h - h0 > H / 2) inmersed = 0.0;
+			else if (h0 - h > H / 2) inmersed = 1.0;
+			else inmersed = (h0 - h) / H + 0.5;
+			return { 0.0,D * V * inmersed * g,0.0 };
 	}
 };
