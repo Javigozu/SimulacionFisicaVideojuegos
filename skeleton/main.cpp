@@ -223,8 +223,8 @@ void initPhysics(bool interactive)
 	muelle1->addForce(muelle);
 	muelle1->addParticle(muelleando);
 
-	Particle* A = new Particle(sphereSmall, { 0,0.5,1,1 }, { 50,35,0 }, { 0,0,0 }, { 0.0, 0.0, 0.0 }, 1.0, 5.0);
-	Particle* B = new Particle(sphereSmall, { 0,1,1,1 }, { 70,35,0 }, { 0,0,0 }, { 0.0, 0.0, 0.0 }, 1.0, 5.0);
+	Particle* A = new Particle(sphereSmall, { 0,0.5,1,1 }, { 50,35,0 }, { 0,0,0 }, { 0.0, 0.0, 0.0 }, 0.9, 5.0);
+	Particle* B = new Particle(sphereSmall, { 0,1,1,1 }, { 70,35,0 }, { 0,0,0 }, { 0.0, 0.0, 0.0 }, 0.9, 5.0);
 	muelleAB = new SpringGenerator(A, 10, (A->getPos() - B->getPos()).magnitude()/2); //Fuerza
 	muelleBA = new SpringGenerator(B, 10, (A->getPos() - B->getPos()).magnitude()/2); //Fuerza
 	muelle2 = new ParticleSystem(1000, muellePos);
@@ -233,9 +233,9 @@ void initPhysics(bool interactive)
 	muelle2->addParticle(A);
 	muelle2->addParticle(B);
 
-	Particle* cuboAcuatic = new Particle(new physx::PxBoxGeometry(1,1,1), {0,1,0,1}, {20,10,0}, {0,0,0}, {0.0, 0.0, 0.0}, 1.0, 5.0);
+	Particle* cuboAcuatic = new Particle(new physx::PxBoxGeometry(1,1,1), {0,1,0,1}, {20,10,0}, {0,0,0}, {0.0, 0.0, 0.0}, 0.75, 100.0);
 	inmersion = new ParticleSystem(1000, {0,0,0});
-	inmersion->addForce(new BuoyancyGenerator(60, 2, 1, 10.0));
+	inmersion->addForce(new BuoyancyGenerator(60, 2, 1, 1000.0));
 	inmersion->addForce(g);
 	inmersion->addParticle(cuboAcuatic);
 }

@@ -102,7 +102,7 @@ public:
 
 class SpringGenerator : public ForceGenerator
 {
-private:
+protected:
 	Particle* other;
 	double K;
 	double lon;
@@ -116,6 +116,21 @@ public:
 		if (p != other) {
 			Vector3D dist = p->getPos() - other->getPos();
 			return dist * ((1 / dist.magnitude()) * (dist.magnitude() - lon) * -K);
+		}
+		else return { 0.0,0.0,0.0 };
+	}
+};
+class ElasticGenerator : public SpringGenerator
+{
+public:
+	ElasticGenerator(Particle* p, double k, double l)
+		: SpringGenerator(p, k, l) {
+	}
+	virtual Vector3D applyForce(Particle* p) override {
+		if (p != other) {
+			Vector3D dist = p->getPos() - other->getPos();
+			if (dist.magnitude() >= lon) return dist * ((1 / dist.magnitude()) * (dist.magnitude() - lon) * -K);
+			else return { 0.0,0.0,0.0 };
 		}
 		else return { 0.0,0.0,0.0 };
 	}
@@ -140,10 +155,10 @@ public:
 	virtual Vector3D applyForce(Particle* p) override {
 		float h = p->getPos().getY();
 		float h0 = liquid_H;
-			float inmersed;
-			if (h - h0 > H / 2) inmersed = 0.0;
-			else if (h0 - h > H / 2) inmersed = 1.0;
-			else inmersed = (h0 - h) / H + 0.5;
-			return { 0.0,D * V * inmersed * g,0.0 };
+		float inmersed;
+		if (h - h0 > H / 2) inmersed = 0.0;
+		else if (h0 - h > H / 2) inmersed = 1.0;
+		else inmersed = (h0 - h) / H + 0.5;
+		return { 0.0,D * V * inmersed * g,0.0 };
 	}
 };
