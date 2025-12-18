@@ -234,7 +234,7 @@ void walls() {
 			case 'm': //muelles con bloques corrosivos, matan a la bola
 				sSys = new SolidSystem();
 				rb = createRBDin(new PxBoxGeometry(tam.getX(), tam.getY() * 2, tam.getZ()), PxTransform(pos.getX(), pos.getY() - tam.getY() * 4, pos.getZ()), 4, { 0,0.7,0,1 });
-				rb->setRigidDynamicLockFlags(PxRigidDynamicLockFlag::eLOCK_LINEAR_Z | PxRigidDynamicLockFlag::eLOCK_ANGULAR_X | PxRigidDynamicLockFlag::eLOCK_ANGULAR_Y | PxRigidDynamicLockFlag::eLOCK_ANGULAR_Z);
+				rb->setRigidDynamicLockFlags(PxRigidDynamicLockFlag::eLOCK_LINEAR_X | PxRigidDynamicLockFlag::eLOCK_LINEAR_Z | PxRigidDynamicLockFlag::eLOCK_ANGULAR_X | PxRigidDynamicLockFlag::eLOCK_ANGULAR_Y | PxRigidDynamicLockFlag::eLOCK_ANGULAR_Z);
 				sSys->addBody(rb);
 				spring = new SpringAnchorGenerator(pos, 1800, tam.getY() * 4);
 				sSys->addForce(spring);
