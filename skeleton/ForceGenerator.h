@@ -75,8 +75,10 @@ public:
 	}
 	void setPos(Vector3D p) { Pos = p; }
 	virtual void updateTime(double t) override {
-		time += t;
-		newR = newR + vel * t;
+		if (active) {
+			time += t;
+			newR = newR + vel * t;
+		}
 	}
 	virtual Vector3D applyForce(Particle* p) override {
 		double r = (p->getPos() - Pos).magnitude();
@@ -170,14 +172,14 @@ public:
 		Pos = pos;
 		Volume = vol;
 		liquid = new RenderItem(CreateShape(physx::PxBoxGeometry(vol.getX() / 2, vol.getY() / 2, vol.getZ() / 2)),
-			new physx::PxTransform(pos.getX() - vol.getX() / 2, pos.getY() - vol.getY() / 2, pos.getZ() - vol.getZ() / 2),
-			{ 0.0,0.6,1.0,0.5 });
+			new physx::PxTransform(pos.getX() + vol.getX() / 2, pos.getY() + vol.getY() / 2, pos.getZ() + vol.getZ() / 2),
+			{ 0.0,0.6,1.0,1.0 });
 	}
 	virtual ~BuoyancyGenerator() {
 		DeregisterRenderItem(liquid);
 	}
 	virtual Vector3D applyForce(Particle* p) override {
-		if ((p->getPos().getX() >= Pos.getX() && p->getPos().getZ() >= Pos.getZ())
+		if ((p->getPos().getX() >= Pos.getX() && p->getPos().getY() >= Pos.getY() && p->getPos().getZ() >= Pos.getZ())
 			&& (p->getPos().getX() <= Pos.getX() + Volume.getX() && p->getPos().getX() <= Pos.getZ() + Volume.getZ())) {
 
 			float h = p->getPos().getY();
@@ -191,8 +193,7 @@ public:
 		else return { 0.0,0.0,0.0 };
 	}
 	virtual Vector3D applyForce(physx::PxRigidDynamic* d) override {
-
-		if ((d->getGlobalPose().p.x >= Pos.getX() && d->getGlobalPose().p.z >= Pos.getZ())
+		if ((d->getGlobalPose().p.x >= Pos.getX() && d->getGlobalPose().p.y >= Pos.getY() && d->getGlobalPose().p.z >= Pos.getZ())
 			&& (d->getGlobalPose().p.x <= Pos.getX() + Volume.getX() && d->getGlobalPose().p.z <= Pos.getZ() + Volume.getZ()))
 		{
 			float h = d->getGlobalPose().p.y;

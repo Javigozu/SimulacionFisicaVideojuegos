@@ -46,7 +46,7 @@ RenderItem* _yAxes = NULL;
 RenderItem* _zAxes = NULL;
 //Escenario
 std::vector<RenderItem*> items;
-std::vector<PxRigidStatic*> obstacles;
+std::vector<physx::PxRigidActor*> obstacles;
 //Geometría partículas
 PxGeometry* sphereSmall = NULL;
 PxGeometry* sphereBig = NULL;
@@ -59,18 +59,23 @@ Particle* px2 = nullptr; //particula explosion 1
 Particle* smoke = nullptr; //particula Humo
 //Parametros para la bola y la explosion
 bool ballActive = true; Vector3D ballPos;
-double expTime = 0.0, maxTime = 5.0;
+double expTime = 0.0, maxTime = 3.0;
+bool dead = false; bool resetPos = false;
 //Sistemas
 SolidSystem* ballSys = NULL; //Sistema que guarda la pelota y gestiona las fuerzas
 PxRigidDynamic* ball = NULL;
+PxRigidStatic* meta = NULL;
 ParticleSystem* deadExp = NULL; //Sistemas para la explosion
+ParticleSystem* festive = NULL;
+bool win = false;
 ParticleSystem* expSys = NULL;
-SolidSystem* springSys = NULL;
+std::vector<SolidSystem*> springSys;
 ParticleSystem* windSys = NULL; //Sistema para el viento
 bool windActive = true;
 //Fuerzas
 std::vector<WindGenerator*> windForce;
 std::vector<ExplosionGenerator*> expForce;
+std::vector<ForceGenerator*> flotForce;
 GravityGenerator* g = NULL;
 ExplosionGenerator* e = NULL;
 
@@ -125,12 +130,6 @@ void DeregisterAxes() {
 	DeregisterRenderItem(_yAxes);
 	DeregisterRenderItem(_zAxes);
 }
-void createBall() {
-	ball->setGlobalPose(PxTransform(PxVec3(ballPos.getX(), ballPos.getY(), ballPos.getZ())));
-	ball->clearForce();
-	ball->setLinearVelocity(PxVec3(0, 0, 0));
-	ballActive = true;
-}
 void resetExp() {
 	px1->setPos({ -100,0,0 });
 	px2->setPos({ -100,0,0 });
@@ -138,7 +137,13 @@ void resetExp() {
 	e->setPos({ -100,0,0 });
 	e->activate(false);
 	deadExp->activate(false);
-	createBall();
+}
+void resetBall() {
+	ball->setGlobalPose(PxTransform(PxVec3(ballPos.getX(), ballPos.getY(), ballPos.getZ())));
+	ball->clearForce();
+	ball->setLinearVelocity(PxVec3(0, 0, 0));
+	ballActive = true;
+	resetExp();
 }
 void explode() {
 	px1->setPos(ball->getGlobalPose().p);
@@ -156,7 +161,8 @@ void walls() {
 	g = new GravityGenerator();
 	windSys = new ParticleSystem(10000, { 0,0,0 }, 0.1, 2.0);
 	expSys = new ParticleSystem(10000, { 0,0,0 }, 0.1, 1.0);
-	springSys = new SolidSystem();
+	festive = new ParticleSystem(10000, { 0,0,0 }, 0.05, 2.5);
+	festive->addForce(g);
 
 	Vector3D zero(0, 70, 0);
 	Vector3D tam(2.0, 2.0, 2.0);
@@ -182,8 +188,15 @@ void walls() {
 			ParticleGenerator* n;
 			ExplosionGenerator* gen;
 
+			SolidSystem* sSys;
 			SpringAnchorGenerator* spring;
 			PxRigidDynamic* rb;
+
+			PxRigidActor* actor;
+
+			BuoyancyGenerator* flot;
+
+			physx::PxVec4 color;
 			switch (c) {
 			case 'x':
 				createRBStat(new PxBoxGeometry(tam.getX(), tam.getY(), tam.getZ()), PxTransform(pos.getX(), pos.getY(), pos.getZ()), { 1,1,1,1 });
@@ -202,7 +215,7 @@ void walls() {
 				createRBStat(new PxBoxGeometry(tam.getX(), tam.getY(), tam.getZ()), PxTransform(pos.getX(), pos.getY(), pos.getZ()), { 0.8,0.7,1.0,1 });
 				break;
 			case '>':
-				w = new WindGenerator({ pos.getX() - tam.getX(),pos.getY() - tam.getY(), pos.getZ() - tam.getZ() }, { tam.getX() * 2,tam.getY() * 2,s.size() * 2 * tam.getZ() }, { 0,0,50 });
+				w = new WindGenerator({ pos.getX() - tam.getX(),pos.getY() - tam.getY(), pos.getZ() - tam.getZ() }, { tam.getX() * 2,tam.getY() * 2,s.size() * 2 * tam.getZ() }, { 0,0,100 });
 				windForce.push_back(w);
 				pw = new Particle(sphereSmall, { 0.8,1,1,1 }, { pos.getX(),pos.getY(), pos.getZ() }, { 0, 0, 0 }, { 0.0, 0.0, 0.0 }, 1.0, 1.0, 0.0);
 				u = new UniformGenerator(pw, { tam.getX(),tam.getY(),0 }, { 0,0,0 }); //Generador uniforme
@@ -212,24 +225,47 @@ void walls() {
 				createRBStat(new PxBoxGeometry(tam.getX(), tam.getY(), tam.getZ()), PxTransform(pos.getX(), pos.getY(), pos.getZ()), { 0.8,0.7,1.0,1 });
 				break;
 			case 'a':
-				createRBStat(new PxBoxGeometry(tam.getX(), tam.getY(), tam.getZ()), PxTransform(pos.getX(), pos.getY(), pos.getZ()), { 0,1,0,1 });
-				//Añadir a collisions
+				actor = createRBStat(new PxBoxGeometry(tam.getX(), tam.getY(), tam.getZ()), PxTransform(pos.getX(), pos.getY(), pos.getZ()), { 0,1,0,1 });
+				obstacles.push_back(actor);
 				break;
 			case 'm':
-				rb = createRBDin(new PxBoxGeometry(tam.getX(), tam.getY()*2, tam.getZ()), PxTransform(pos.getX(), pos.getY() - tam.getY() * 4, pos.getZ()), 4, {0,0.7,0,1});
+				sSys = new SolidSystem();
+				rb = createRBDin(new PxBoxGeometry(tam.getX(), tam.getY() * 2, tam.getZ()), PxTransform(pos.getX(), pos.getY() - tam.getY() * 4, pos.getZ()), 4, { 0,0.7,0,1 });
 				rb->setRigidDynamicLockFlags(PxRigidDynamicLockFlag::eLOCK_LINEAR_Z);
-				springSys->addBody(rb);
-				spring = new SpringAnchorGenerator(pos,500, tam.getY()*4);
-				springSys->addForce(spring);
-				//Añadir a collisions
+				sSys->addBody(rb);
+				spring = new SpringAnchorGenerator(pos, 1300, tam.getY() * 4);
+				sSys->addForce(spring);
+				springSys.push_back(sSys);
+				obstacles.push_back(rb);
 				break;
 			case 'e':
 				createRBStat(new PxBoxGeometry(tam.getX(), tam.getY(), tam.getZ()), PxTransform(pos.getX(), pos.getY(), pos.getZ()), { 1,0.8,0,1 });
 				exp = new Particle(sphereSmall, { 1,0.8,0,1 }, { pos.getX(),pos.getY(), pos.getZ() }, { 0, 0, 0 }, { 0.0, 0.0, 0.0 }, 1.0, 1.0, 0.0);
 				n = new NormalGenerator(exp, tam / 2, { 0,0,0 });
-				gen = new ExplosionGenerator(pos, 30, 400, 2, 5);
+				gen = new ExplosionGenerator(pos, 25, 400, 4, 5);
 				expSys->addGen(n); expSys->addForce(gen);
 				expForce.push_back(gen);
+				break;
+			case 'l':
+				flot = new BuoyancyGenerator({ pos.getX() - tam.getX(),pos.getY() - tam.getY(), pos.getZ() - tam.getZ() }, { tam.getX() * 2,tam.getY() * 2, tam.getZ() * 2 }, 4, 33.5, 10);
+				w = new WindGenerator({ pos.getX() - tam.getX(),pos.getY() - tam.getY(), pos.getZ() - tam.getZ() }, { tam.getX() * 2,tam.getY() * 2,tam.getZ() * 2 }, { 0,0,-10 });
+				flotForce.push_back(flot);
+				flotForce.push_back(w);
+				break;
+			case 'r':
+				meta = createRBStat(new PxBoxGeometry(tam.getX(), tam.getY(), tam.getZ()), PxTransform(pos.getX(), pos.getY(), pos.getZ()), { 0.9,0.2,0,3 });
+				break;
+			case 'f':
+			case 'g':
+			case 'h':
+			case 'j':
+				if (c == 'f') color = { 1,0.1,0.4,1 };
+				else if (c == 'g') color = { 1.0,0.75,0.1,1 };
+				else if (c == 'h') color = { 0.1,0.9,0.7,1 };
+				else if (c == 'j') color = { 0.3,0.1,1,1 };
+				pw = new Particle(sphereSmall, color, { pos.getX(),pos.getY(), pos.getZ() }, { 0,10, 0 }, { 0.0, 0.0, 0.0 }, 1.0, 0.3);
+				u = new FountainGenerator(pw, { 1,1,1 }, { 5,20,5 });
+				festive->addGen(u); festive->activate(false);
 				break;
 			case'1':
 			case'2':
@@ -241,7 +277,7 @@ void walls() {
 			case'8':
 			case'9':
 				physx::PxQuat q(0.44, physx::PxVec3(1, 0, 0));
-				physx::PxRigidStatic* rb = createRBStat(new PxBoxGeometry(tam.getX(), tam.getY(), tam.getZ() * (c-'0')), PxTransform(pos.getX(), pos.getY(), pos.getZ(), q), {1,1,1,1});
+				createRBStat(new PxBoxGeometry(tam.getX(), tam.getY(), tam.getZ() * (c - '0')), PxTransform(pos.getX(), pos.getY(), pos.getZ(), q), { 1,1,1,1 });
 				break;
 			}
 		}
@@ -288,6 +324,8 @@ void initPhysics(bool interactive)
 		ballSys->addForce(w);
 	for (auto& e : expForce)
 		ballSys->addForce(e);
+	for (auto& f : flotForce)
+		ballSys->addForce(f);
 
 	//Explosion
 	px1 = new Particle(sphereSmall, { 1,0.8,0,1 }, { 100,0,0 }, { 0,0,0 }, { 0.0, 0.0, 0.0 }, 1.0, 0.7); //Particula ligera
@@ -313,21 +351,35 @@ void stepPhysics(bool interactive, double t)
 {
 	PX_UNUSED(interactive);
 
+	if (resetPos) {
+		resetPos = false;
+		//ball->setGlobalPose(PxTransform(PxVec3(-100, ballPos.getY(), ballPos.getZ())));
+	}
+
 	gScene->simulate(t);
 	//----------------------------------!
 	deadExp->update(t);
 	if (!ballActive && expTime < maxTime) {
 		expTime += t;
+		if (expTime >= maxTime) resetBall();
 	}
-	if (expTime >= maxTime) resetExp();
 
 	//for (auto& g : gun) g->integrate(t);
 	windSys->update(t);
 	for (auto& e : expForce) e->updateTime(t);
 	expSys->update(t);
-	springSys->update(t);
+	for (auto& s : springSys)s->update(t);
 
 	ballSys->update(t);
+
+	if (dead) {
+		dead = false;
+		resetPos = true;
+		//explode();
+	}
+	if (win) {
+		festive->update(t);
+	}
 
 	if (ballActive) GetCamera()->setCamera(PxVec3(GetCamera()->getEye().x, ball->getGlobalPose().p.y, GetCamera()->getEye().z));
 
@@ -368,28 +420,13 @@ void keyPress(unsigned char key, const PxTransform& camera)
 
 	switch (toupper(key))
 	{
-	case ' ':
-		//createBall();
-		ballActive = true;
-		resetExp();
-		break;
-	case 'N':
-		//explode();
-		break;
 	case 'Z':
 		windActive = !windActive;
 		windSys->activate(windActive);
 		for (auto& w : windForce) w->activate(windActive);
 		break;
 	case 'X':
-		for (auto& e : expForce) { e->reset(); e->activate(true); }
-		break;
-	case 'M':
-		e->activate(!e->getActive());
-		e->reset();
-		break;
-	case 'G':
-		g->activate(!g->getActive());
+		for (auto& e : expForce) { e->activate(true); e->reset(); }
 		break;
 	default:
 		break;
@@ -400,6 +437,16 @@ void onCollision(physx::PxActor* actor1, physx::PxActor* actor2)
 {
 	PX_UNUSED(actor1);
 	PX_UNUSED(actor2);
+	if (actor1 == ball) {
+		if (actor2 == meta) { win = true; festive->activate(true); }
+		for (auto& o : obstacles) {
+			if (actor2 == o) {
+				std::cout << "MUERTO\n";
+				dead = true;
+				break;
+			}
+		}
+	}
 }
 
 
