@@ -1,5 +1,6 @@
 #pragma once
 #include "Particle.h"
+#include <PxPhysicsAPI.h>
 class ForceGenerator {
 protected:
 	bool active;
@@ -8,6 +9,7 @@ public:
 	virtual ~ForceGenerator() {}
 	virtual void updateTime(double t) {}
 	virtual Vector3D applyForce(Particle* p) = 0;
+	virtual Vector3D applyForce(physx::PxRigidDynamic* d) { return { 0,0,0 }; };
 	void activate(bool a) { active = a; }
 	bool getActive() { return active; }
 };
@@ -34,6 +36,14 @@ public:
 		if ((p->getPos().getX() >= Pos.getX() && p->getPos().getY() >= Pos.getY() && p->getPos().getZ() >= Pos.getZ())
 			&& (p->getPos().getX() <= Pos.getX() + Volume.getX() && p->getPos().getY() <= Pos.getY() + Volume.getY() && p->getPos().getZ() <= Pos.getZ() + Volume.getZ()))
 			return (Vel - p->getVel()) * K1 + ((Vel - p->getVel()) * (Vel - p->getVel()).magnitude() * K2);
+		else return { 0.0,0.0,0.0 };
+	}
+	virtual Vector3D applyForce(physx::PxRigidDynamic* d) {
+		if ((d->getGlobalPose().p.x >= Pos.getX() && d->getGlobalPose().p.y >= Pos.getY() && d->getGlobalPose().p.z >= Pos.getZ())
+			&& (d->getGlobalPose().p.x <= Pos.getX() + Volume.getX() && d->getGlobalPose().p.y <= Pos.getY() + Volume.getY() && d->getGlobalPose().p.z <= Pos.getZ() + Volume.getZ()))
+		{
+			return (Vel - Vector3D(d->getLinearVelocity())) * K1 + ((Vel - Vector3D(d->getLinearVelocity())) * (Vel - Vector3D(d->getLinearVelocity())).magnitude() * K2);
+		}
 		else return { 0.0,0.0,0.0 };
 	}
 };
@@ -73,6 +83,11 @@ public:
 		if (r < newR) return (p->getPos() - Pos) * (K / (r * r)) * physx::PxExp(-time / T);
 		else return { 0.0,0.0,0.0 };
 	}
+	virtual Vector3D applyForce(physx::PxRigidDynamic* d) override {
+		double r = (Vector3D(d->getGlobalPose().p) - Pos).magnitude();
+		if (r < newR) return (Vector3D(d->getGlobalPose().p) - Pos) * (K / (r * r)) * physx::PxExp(-time / T);
+		else return { 0.0,0.0,0.0 };
+	}
 };
 
 class SpringAnchorGenerator : public ForceGenerator
@@ -96,6 +111,11 @@ public:
 	void setK(double k) { K = max(0, k); }
 	virtual Vector3D applyForce(Particle* p) override {
 		Vector3D dist = p->getPos() - Pos;
+		return dist * ((1 / dist.magnitude()) * (dist.magnitude() - lon) * -K);
+	}
+	virtual Vector3D applyForce(physx::PxRigidDynamic* d) override {
+		Vector3D v = Vector3D(d->getGlobalPose().p);
+		Vector3D dist = Vector3D(d->getGlobalPose().p) - Pos;
 		return dist * ((1 / dist.magnitude()) * (dist.magnitude() - lon) * -K);
 	}
 };
@@ -140,25 +160,49 @@ private:
 	float  liquid_H, H, V, D;
 	const float g = 9.8;
 	RenderItem* liquid;
+	Vector3D Pos, Volume;
 public:
-	BuoyancyGenerator(float lh, float h, float v, float d) {
-		liquid_H = lh;
+	BuoyancyGenerator(Vector3D pos, Vector3D vol, float h, float v, float d) {
+		liquid_H = pos.getY();
 		H = h;
 		V = v;
 		D = d;
-		liquid = new RenderItem(CreateShape(physx::PxBoxGeometry(50, 0.1, 50)),
-			new physx::PxTransform(0.0, lh, 0.0), { 0.0,0.6,1.0,0.5 });
+		Pos = pos;
+		Volume = vol;
+		liquid = new RenderItem(CreateShape(physx::PxBoxGeometry(vol.getX() / 2, vol.getY() / 2, vol.getZ() / 2)),
+			new physx::PxTransform(pos.getX() - vol.getX() / 2, pos.getY() - vol.getY() / 2, pos.getZ() - vol.getZ() / 2),
+			{ 0.0,0.6,1.0,0.5 });
 	}
 	virtual ~BuoyancyGenerator() {
 		DeregisterRenderItem(liquid);
 	}
 	virtual Vector3D applyForce(Particle* p) override {
-		float h = p->getPos().getY();
-		float h0 = liquid_H;
-		float inmersed;
-		if (h - h0 > H / 2) inmersed = 0.0;
-		else if (h0 - h > H / 2) inmersed = 1.0;
-		else inmersed = (h0 - h) / H + 0.5;
-		return { 0.0,D * V * inmersed * g,0.0 };
+		if ((p->getPos().getX() >= Pos.getX() && p->getPos().getZ() >= Pos.getZ())
+			&& (p->getPos().getX() <= Pos.getX() + Volume.getX() && p->getPos().getX() <= Pos.getZ() + Volume.getZ())) {
+
+			float h = p->getPos().getY();
+			float h0 = liquid_H;
+			float inmersed;
+			if (h - h0 > H / 2) inmersed = 0.0;
+			else if (h0 - h > H / 2) inmersed = 1.0;
+			else inmersed = (h0 - h) / H + 0.5;
+			return { 0.0,D * V * inmersed * g,0.0 };
+		}
+		else return { 0.0,0.0,0.0 };
+	}
+	virtual Vector3D applyForce(physx::PxRigidDynamic* d) override {
+
+		if ((d->getGlobalPose().p.x >= Pos.getX() && d->getGlobalPose().p.z >= Pos.getZ())
+			&& (d->getGlobalPose().p.x <= Pos.getX() + Volume.getX() && d->getGlobalPose().p.z <= Pos.getZ() + Volume.getZ()))
+		{
+			float h = d->getGlobalPose().p.y;
+			float h0 = liquid_H;
+			float inmersed;
+			if (h - h0 > H / 2) inmersed = 0.0;
+			else if (h0 - h > H / 2) inmersed = 1.0;
+			else inmersed = (h0 - h) / H + 0.5;
+			return { 0.0,D * V * inmersed * g,0.0 };
+		}
+		else return { 0.0,0.0,0.0 };
 	}
 };
